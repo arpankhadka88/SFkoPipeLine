@@ -18,13 +18,23 @@ node {
             """
         }
         
+        stage('List Existing Scratch Orgs') {
+            echo "=========================================="
+            echo "Listing all existing scratch orgs:"
+            echo "=========================================="
+            sh """
+              sf org list
+            """
+            echo "=========================================="
+        }
+        
         stage('Delete Existing Scratch Org') {
             script {
                 def scratchOrgAlias = 'PLTest'
                 
-                // Check if scratch org exists
+                // Check if scratch org exists - fix the grep pattern
                 def orgExists = sh(
-                    script: "sf org list --json | grep -q '\"alias\":\"${scratchOrgAlias}\"'",
+                    script: "sf org list --json | jq -e '.result.scratchOrgs[] | select(.alias==\"${scratchOrgAlias}\")' > /dev/null 2>&1",
                     returnStatus: true
                 )
                 
@@ -34,6 +44,9 @@ node {
                       sf org delete scratch --target-org ${scratchOrgAlias} --no-prompt
                     """
                     echo "Scratch org ${scratchOrgAlias} deleted successfully"
+                    
+                    // Wait a moment for the deletion to propagate
+                    sleep(time: 5, unit: 'SECONDS')
                 } else {
                     echo "No existing scratch org with alias ${scratchOrgAlias} found. Proceeding to create new one."
                 }
@@ -57,10 +70,8 @@ node {
             }
         }
         
-        stage('Generate Scratch Org Password') 
-        {
-            script 
-            {
+        stage('Generate Scratch Org Password') {
+            script {
                 def scratchOrgAlias = 'PLTest'
                 
                 echo "Generating password for scratch org ${scratchOrgAlias}..."
@@ -79,18 +90,19 @@ node {
                 echo "=========================================="
             }
         }
-    }
-    stage('Deploy to PLTest Scratch Org') {
-    script {
-        def scratchOrgAlias = 'PLTest'
         
-        echo "Deploying source to scratch org ${scratchOrgAlias}..."
-        sh """
-          sf project deploy start \
-            --source-dir force-app \
-            --target-org ${scratchOrgAlias}
-        """
-        echo "Deployment to ${scratchOrgAlias} completed successfully"
+        stage('Deploy to PLTest Scratch Org') {
+            script {
+                def scratchOrgAlias = 'PLTest'
+                
+                echo "Deploying source to scratch org ${scratchOrgAlias}..."
+                sh """
+                  sf project deploy start \
+                    --source-dir force-app \
+                    --target-org ${scratchOrgAlias}
+                """
+                echo "Deployment to ${scratchOrgAlias} completed successfully"
+            }
+        }
     }
-}
 }
