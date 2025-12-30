@@ -18,7 +18,7 @@ node {
             """
         }
         
-        stage('Create Test Scratch Org') {
+        stage('Delete Existing Scratch Org') {
             script {
                 def scratchOrgAlias = 'PLTest'
                 
@@ -29,19 +29,31 @@ node {
                 )
                 
                 if (orgExists == 0) {
-                    echo "Scratch org with alias ${scratchOrgAlias} already exists"
-                } else {
-                    echo "Scratch org ${scratchOrgAlias} not found. Creating new scratch org..."
+                    echo "Scratch org with alias ${scratchOrgAlias} exists. Deleting..."
                     sh """
-                      sf org create scratch \
-                        --definition-file config/project-scratch-def.json \
-                        --alias ${scratchOrgAlias} \
-                        --set-default \
-                        --duration-days 7 \
-                        --target-dev-hub ${SF_USERNAME}
+                      sf org delete scratch --target-org ${scratchOrgAlias} --no-prompt
                     """
-                    echo "Scratch org ${scratchOrgAlias} created successfully"
+                    echo "Scratch org ${scratchOrgAlias} deleted successfully"
+                } else {
+                    echo "No existing scratch org with alias ${scratchOrgAlias} found. Proceeding to create new one."
                 }
+            }
+        }
+        
+        stage('Create Test Scratch Org') {
+            script {
+                def scratchOrgAlias = 'PLTest'
+                
+                echo "Creating new scratch org with alias ${scratchOrgAlias}..."
+                sh """
+                  sf org create scratch \
+                    --definition-file config/project-scratch-def.json \
+                    --alias ${scratchOrgAlias} \
+                    --set-default \
+                    --duration-days 7 \
+                    --target-dev-hub ${SF_USERNAME}
+                """
+                echo "Scratch org ${scratchOrgAlias} created successfully"
             }
         }
         
@@ -55,37 +67,3 @@ node {
                 """
                 
                 echo "=========================================="
-                echo "Scratch Org Credentials:"
-                echo "=========================================="
-                sh """
-                  sf org display --target-org ${scratchOrgAlias} --verbose
-                """
-                echo "=========================================="
-                echo "Save these credentials to login from your local machine!"
-                echo "=========================================="
-            }
-        }
-    }
-}
-```
-
-**What this does:**
-
-1. **Creates the scratch org** (if it doesn't exist)
-2. **Generates a password** for the scratch org
-3. **Displays complete credentials** including:
-   - Username
-   - Password
-   - Instance URL
-   - Org ID
-   - Access Token
-   - Login URL
-
-**To use the credentials:**
-
-After the pipeline runs, check the Jenkins console output for the credentials section. You'll see something like:
-```
-Username: test-xpmro1qspfra@example.com
-Password: GeneratedPassword123!
-Instance URL: https://cunning-panda-o148fn--pltest.sandbox.my.salesforce.com
-Org ID: 00DPw00000GBjGj
