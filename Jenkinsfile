@@ -99,5 +99,35 @@ node {
                 echo "Deployment to ${scratchOrgAlias} completed successfully"
             }
         }
+        
+        stage('Assign Permission Set') {
+            script {
+                def scratchOrgAlias = 'PLTest'
+                
+                echo "Finding deployed permission sets..."
+                
+                // List all permission sets in the org
+                def permSetName = sh(
+                    script: """
+                      sf org list metadata --metadata-type PermissionSet --target-org ${scratchOrgAlias} --json | \
+                      grep -oP '"fullName"\\s*:\\s*"\\K[^"]+' | grep -v '^standard' | head -1
+                    """,
+                    returnStdout: true
+                ).trim()
+                
+                if (permSetName) {
+                    echo "Found permission set: ${permSetName}"
+                    echo "Assigning permission set ${permSetName} to admin user..."
+                    sh """
+                      sf org assign permset \
+                        --name ${permSetName} \
+                        --target-org ${scratchOrgAlias}
+                    """
+                    echo "Permission set ${permSetName} assigned successfully"
+                } else {
+                    echo "No custom permission sets found. Skipping assignment."
+                }
+            }
+        }
     }
 }
