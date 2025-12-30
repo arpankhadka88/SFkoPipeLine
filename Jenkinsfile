@@ -3,6 +3,7 @@ node {
     
     def SF_USERNAME = 'arpankhadka88@cunning-panda-o148fn.com'
     def SF_INSTANCE_URL = "https://login.salesforce.com"
+    def PACKAGE_NAME = 'FirstPackage'
     
     withCredentials([
         file(credentialsId: 'PLKoKey', variable: 'JWT_KEY_FILE'),
@@ -106,7 +107,6 @@ node {
                 
                 echo "Finding permission sets from source code..."
                 
-                // Get permission set name from the deployed source files
                 def permSetName = sh(
                     script: """
                       find force-app -name '*.permissionset-meta.xml' -type f | \
@@ -135,32 +135,66 @@ node {
         stage('Run Unit Tests') {
             script {
                 def scratchOrgAlias = 'PLTest'
-                def testLevel = 'RunLocalTests' // Options: RunLocalTests, RunAllTestsInOrg, RunSpecifiedTests
+                def testLevel = 'RunLocalTests'
                 
                 echo "=========================================="
                 echo "Running Apex unit tests in ${scratchOrgAlias}..."
                 echo "Test Level: ${testLevel}"
                 echo "=========================================="
                 
-                def testStatus = sh(
-                    script: """
-                      sf apex run test \
-                        --target-org ${scratchOrgAlias} \
-                        --wait 10 \
-                        --result-format human \
-                        --code-coverage \
-                        --test-level ${testLevel}
-                    """,
-                    returnStatus: true
-                )
+                // Check if there are any test classes
+                def testClassCount = sh(
+                    script: "find force-app -name '*Test*.cls' -o -name '*_Test.cls' | wc -l",
+                    returnStdout: true
+                ).trim()
                 
-                if (testStatus != 0) {
-                    error "Salesforce unit test run failed in ${scratchOrgAlias}"
+                if (testClassCount.toInteger() > 0) {
+                    def testStatus = sh(
+                        script: """
+                          sf apex run test \
+                            --target-org ${scratchOrgAlias} \
+                            --wait 10 \
+                            --result-format human \
+                            --code-coverage \
+                            --test-level ${testLevel}
+                        """,
+                        returnStatus: true
+                    )
+                    
+                    if (testStatus != 0) {
+                        error "Salesforce unit test run failed in ${scratchOrgAlias}"
+                    } else {
+                        echo "=========================================="
+                        echo "All unit tests passed successfully!"
+                        echo "=========================================="
+                    }
                 } else {
                     echo "=========================================="
-                    echo "All unit tests passed successfully!"
+                    echo "No Apex test classes found. Skipping unit tests."
                     echo "=========================================="
                 }
+            }
+        }
+        
+        stage('Create Package Version') {
+            script {
+                echo "=========================================="
+                echo "Creating package version for ${PACKAGE_NAME}..."
+                echo "=========================================="
+                
+                sh """
+                  sf package version create \
+                    --package ${PACKAGE_NAME} \
+                    --installation-key-bypass \
+                    --wait 10 \
+                    --target-dev-hub ${SF_USERNAME} \
+                    --json
+                """ 
+                
+                echo "=========================================="
+                echo "Package version created successfully!"
+                echo "Check the output above for the Package Version ID"
+                echo "=========================================="
             }
         }
     }
