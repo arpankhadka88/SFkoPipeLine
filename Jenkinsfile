@@ -131,5 +131,37 @@ node {
                 }
             }
         }
+        
+        stage('Run Unit Tests') {
+            script {
+                def scratchOrgAlias = 'PLTest'
+                def testLevel = 'RunLocalTests' // Options: RunLocalTests, RunAllTestsInOrg, RunSpecifiedTests
+                
+                echo "=========================================="
+                echo "Running Apex unit tests in ${scratchOrgAlias}..."
+                echo "Test Level: ${testLevel}"
+                echo "=========================================="
+                
+                def testStatus = sh(
+                    script: """
+                      sf apex run test \
+                        --target-org ${scratchOrgAlias} \
+                        --wait 10 \
+                        --result-format human \
+                        --code-coverage \
+                        --test-level ${testLevel}
+                    """,
+                    returnStatus: true
+                )
+                
+                if (testStatus != 0) {
+                    error "Salesforce unit test run failed in ${scratchOrgAlias}"
+                } else {
+                    echo "=========================================="
+                    echo "All unit tests passed successfully!"
+                    echo "=========================================="
+                }
+            }
+        }
     }
 }
