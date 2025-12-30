@@ -44,5 +44,48 @@ node {
                 }
             }
         }
+        
+        stage('Generate Scratch Org Password') {
+            script {
+                def scratchOrgAlias = 'PLTest'
+                
+                echo "Generating password for scratch org ${scratchOrgAlias}..."
+                sh """
+                  sf org generate password --target-org ${scratchOrgAlias}
+                """
+                
+                echo "=========================================="
+                echo "Scratch Org Credentials:"
+                echo "=========================================="
+                sh """
+                  sf org display --target-org ${scratchOrgAlias} --verbose
+                """
+                echo "=========================================="
+                echo "Save these credentials to login from your local machine!"
+                echo "=========================================="
+            }
+        }
     }
 }
+```
+
+**What this does:**
+
+1. **Creates the scratch org** (if it doesn't exist)
+2. **Generates a password** for the scratch org
+3. **Displays complete credentials** including:
+   - Username
+   - Password
+   - Instance URL
+   - Org ID
+   - Access Token
+   - Login URL
+
+**To use the credentials:**
+
+After the pipeline runs, check the Jenkins console output for the credentials section. You'll see something like:
+```
+Username: test-xpmro1qspfra@example.com
+Password: GeneratedPassword123!
+Instance URL: https://cunning-panda-o148fn--pltest.sandbox.my.salesforce.com
+Org ID: 00DPw00000GBjGj
