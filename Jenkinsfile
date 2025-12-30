@@ -104,13 +104,15 @@ node {
             script {
                 def scratchOrgAlias = 'PLTest'
                 
-                echo "Finding deployed permission sets..."
+                echo "Finding permission sets from source code..."
                 
-                // List all permission sets in the org
+                // Get permission set name from the deployed source files
                 def permSetName = sh(
                     script: """
-                      sf org list metadata --metadata-type PermissionSet --target-org ${scratchOrgAlias} --json | \
-                      grep -oP '"fullName"\\s*:\\s*"\\K[^"]+' | grep -v '^standard' | head -1
+                      find force-app -name '*.permissionset-meta.xml' -type f | \
+                      head -1 | \
+                      xargs basename | \
+                      sed 's/.permissionset-meta.xml//'
                     """,
                     returnStdout: true
                 ).trim()
@@ -125,7 +127,7 @@ node {
                     """
                     echo "Permission set ${permSetName} assigned successfully"
                 } else {
-                    echo "No custom permission sets found. Skipping assignment."
+                    echo "No custom permission sets found in source. Skipping assignment."
                 }
             }
         }
