@@ -57,8 +57,10 @@ node {
             }
         }
         
-        stage('Generate Scratch Org Password') {
-            script {
+        stage('Generate Scratch Org Password') 
+        {
+            script 
+            {
                 def scratchOrgAlias = 'PLTest'
                 
                 echo "Generating password for scratch org ${scratchOrgAlias}..."
@@ -78,4 +80,17 @@ node {
             }
         }
     }
+    stage('Deploy to PLTest Scratch Org') {
+    script {
+        def scratchOrgAlias = 'PLTest'
+        
+        echo "Deploying source to scratch org ${scratchOrgAlias}..."
+        sh """
+          sf project deploy start \
+            --source-dir force-app \
+            --target-org ${scratchOrgAlias}
+        """
+        echo "Deployment to ${scratchOrgAlias} completed successfully"
+    }
+}
 }
