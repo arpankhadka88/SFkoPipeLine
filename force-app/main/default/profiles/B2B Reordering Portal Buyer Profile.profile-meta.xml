@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Profile xmlns="http://soap.sforce.com/2006/04/metadata">
+    <applicationVisibilities>
+        <application>Travel_expenses</application>
+        <default>false</default>
+        <visible>false</visible>
+    </applicationVisibilities>
+    <custom>true</custom>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>Travel_Expense__c.Approved__c</field>
+        <readable>false</readable>
+    </fieldPermissions>
+    <layoutAssignments>
+        <layout>Travel_Expense__c-Travel Expense Layout</layout>
+    </layoutAssignments>
+    <tabVisibilities>
+        <tab>Travel_Expense__c</tab>
+        <visibility>Hidden</visibility>
+    </tabVisibilities>
+    <userLicense>External Apps Login</userLicense>
+    <userPermissions>
+        <enabled>true</enabled>
+        <name>EnableNotifications</name>
+    </userPermissions>
+    <userPermissions>
+        <enabled>true</enabled>
+        <name>SelectFilesFromSalesforce</name>
+    </userPermissions>
+</Profile>

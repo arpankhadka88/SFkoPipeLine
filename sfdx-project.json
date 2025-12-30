@@ -1,0 +1,19 @@
+{
+  "packageDirectories": [
+    {
+      "versionName": "ver 0.1",
+      "versionNumber": "0.1.0.NEXT",
+      "path": "force-app",
+      "default": true,
+      "package": "FirstPackage",
+      "versionDescription": "Second gen ko first package ho for pipeline"
+    }
+  ],
+  "name": "PipeLineWalaHo",
+  "namespace": "mad_addy",
+  "sfdcLoginUrl": "https://login.salesforce.com",
+  "sourceApiVersion": "65.0",
+  "packageAliases": {
+    "FirstPackage": "0HoQy0000001O8LKAU"
+  }
+}
