@@ -67,3 +67,15 @@ node {
                 """
                 
                 echo "=========================================="
+                echo "Scratch Org Credentials:"
+                echo "=========================================="
+                sh """
+                  sf org display --target-org ${scratchOrgAlias} --verbose
+                """
+                echo "=========================================="
+                echo "Save these credentials to login from your local machine!"
+                echo "=========================================="
+            }
+        }
+    }
+}
