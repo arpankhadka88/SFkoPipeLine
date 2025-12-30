@@ -32,23 +32,18 @@ node {
             script {
                 def scratchOrgAlias = 'PLTest'
                 
-                // Check if scratch org exists - fix the grep pattern
-                def orgExists = sh(
-                    script: "sf org list --json | jq -e '.result.scratchOrgs[] | select(.alias==\"${scratchOrgAlias}\")' > /dev/null 2>&1",
+                echo "Attempting to delete scratch org ${scratchOrgAlias} if it exists..."
+                def deleteStatus = sh(
+                    script: "sf org delete scratch --target-org ${scratchOrgAlias} --no-prompt",
                     returnStatus: true
                 )
                 
-                if (orgExists == 0) {
-                    echo "Scratch org with alias ${scratchOrgAlias} exists. Deleting..."
-                    sh """
-                      sf org delete scratch --target-org ${scratchOrgAlias} --no-prompt
-                    """
+                if (deleteStatus == 0) {
                     echo "Scratch org ${scratchOrgAlias} deleted successfully"
-                    
-                    // Wait a moment for the deletion to propagate
+                    echo "Waiting for deletion to propagate..."
                     sleep(time: 5, unit: 'SECONDS')
                 } else {
-                    echo "No existing scratch org with alias ${scratchOrgAlias} found. Proceeding to create new one."
+                    echo "No scratch org ${scratchOrgAlias} found to delete, or deletion failed. Proceeding..."
                 }
             }
         }
