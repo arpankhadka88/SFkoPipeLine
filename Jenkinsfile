@@ -21,19 +21,16 @@ node {
         }
         
         stage('List Existing Scratch Orgs') {
-            echo "=========================================="
             echo "Listing all existing scratch orgs:"
-            echo "=========================================="
+           
             sh """
               sf org list
             """
-            echo "=========================================="
         }
         
         stage('Delete Existing Scratch Org') {
             script {
-                def scratchOrgAlias = 'PLTest'
-                
+                def scratchOrgAlias = 'PLTest'                
                 echo "Attempting to delete scratch org ${scratchOrgAlias} if it exists..."
                 def deleteStatus = sh(
                     script: "sf org delete scratch --target-org ${scratchOrgAlias} --no-prompt",
@@ -52,9 +49,8 @@ node {
         
         stage('Create Test Scratch Org') {
             script {
-                def scratchOrgAlias = 'PLTest'
-                
-                echo "Creating new scratch org with alias ${scratchOrgAlias}..."
+                def scratchOrgAlias = 'PLTest'          
+                echo "Creating new scratch org with alias ${scratchOrgAlias}"
                 sh """
                   sf org create scratch \
                     --definition-file config/project-scratch-def.json \
@@ -75,16 +71,10 @@ node {
                 sh """
                   sf org generate password --target-org ${scratchOrgAlias}
                 """
-                
-                echo "=========================================="
                 echo "Scratch Org Credentials:"
-                echo "=========================================="
                 sh """
                   sf org display --target-org ${scratchOrgAlias} --verbose
                 """
-                echo "=========================================="
-                echo "Save these credentials to login from your local machine!"
-                echo "=========================================="
             }
         }
         
@@ -104,10 +94,8 @@ node {
         
         stage('Assign Permission Set') {
             script {
-                def scratchOrgAlias = 'PLTest'
-                
-                echo "Finding permission sets from source code..."
-                
+                def scratchOrgAlias = 'PLTest'          
+                echo "Finding permission sets from source code..." 
                 def permSetName = sh(
                     script: """
                       find force-app -name '*.permissionset-meta.xml' -type f | \
@@ -137,11 +125,8 @@ node {
             script {
                 def scratchOrgAlias = 'PLTest'
                 def testLevel = 'RunLocalTests'
-                
-                echo "=========================================="
                 echo "Running Apex unit tests in ${scratchOrgAlias}..."
                 echo "Test Level: ${testLevel}"
-                echo "=========================================="
                 
                 // Check if there are any test classes
                 def testClassCount = sh(
@@ -165,24 +150,17 @@ node {
                     if (testStatus != 0) {
                         error "Salesforce unit test run failed in ${scratchOrgAlias}"
                     } else {
-                        echo "=========================================="
                         echo "All unit tests passed successfully!"
-                        echo "=========================================="
                     }
                 } else {
-                    echo "=========================================="
                     echo "No Apex test classes found. Skipping unit tests."
-                    echo "=========================================="
                 }
             }
         }
         
      stage('Create Package Version') {
     script {
-        echo "=========================================="
-        echo "Creating package version for ${PACKAGE_NAME}..."
-        echo "=========================================="
-        
+        echo "Creating package version for ${PACKAGE_NAME}..."   
         def output = sh(
             script: """
               sf package version create \
@@ -207,11 +185,8 @@ node {
         ).trim()
         
         if (PACKAGE_VERSION_ID && PACKAGE_VERSION_ID != '') {
-            echo "=========================================="
             echo "Package version created successfully!"
             echo "Package Version ID: ${PACKAGE_VERSION_ID}"
-            echo "=========================================="
-            
             echo "Waiting 5 minutes for package replication across Salesforce servers..."
             sleep(time: 5, unit: 'MINUTES')
         } else {
@@ -221,13 +196,10 @@ node {
 }
         
         stage('List Existing Scratch Orgs') {
-            echo "=========================================="
             echo "Listing all existing scratch orgs:"
-            echo "=========================================="
             sh """
               sf org list
             """
-            echo "=========================================="
         }
 
         stage('Delete Existing Package Test Scratch Org') {
@@ -274,16 +246,11 @@ node {
                 sh """
                   sf org generate password --target-org ${scratchOrgAlias}
                 """
-                
-                echo "=========================================="
                 echo "Package Test Scratch Org Credentials:"
-                echo "=========================================="
                 sh """
                   sf org display --target-org ${scratchOrgAlias} --verbose
                 """
-                echo "=========================================="
                 echo "Save these credentials to test the installed package manually!"
-                echo "=========================================="
             }
         }
         
@@ -294,11 +261,7 @@ node {
                 if (!PACKAGE_VERSION_ID) {
                     error "Package Version ID is not available. Cannot install package."
                 }
-                
-                echo "=========================================="
                 echo "Installing package version ${PACKAGE_VERSION_ID} in ${scratchOrgAlias}..."
-                echo "=========================================="
-                
                 def installStatus = sh(
                     script: """
                       sf package install \
@@ -313,9 +276,7 @@ node {
                 if (installStatus != 0) {
                     error "Package installation failed in ${scratchOrgAlias}"
                 } else {
-                    echo "=========================================="
                     echo "Package installed successfully in ${scratchOrgAlias}!"
-                    echo "=========================================="
                 }
             }
         }
@@ -324,12 +285,8 @@ node {
             script {
                 def scratchOrgAlias = 'PackTest'
                 def testLevel = 'RunLocalTests'
-                
-                echo "=========================================="
                 echo "Running Apex unit tests in package install org ${scratchOrgAlias}..."
                 echo "Test Level: ${testLevel}"
-                echo "=========================================="
-                
                 // Check if there are any test classes
                 def testClassCount = sh(
                     script: "find force-app -name '*Test*.cls' -o -name '*_Test.cls' | wc -l",
@@ -352,14 +309,10 @@ node {
                     if (testStatus != 0) {
                         error "Salesforce unit test run failed in package install org ${scratchOrgAlias}"
                     } else {
-                        echo "=========================================="
                         echo "All unit tests passed successfully in package install org!"
-                        echo "=========================================="
                     }
                 } else {
-                    echo "=========================================="
                     echo "No Apex test classes found. Skipping unit tests."
-                    echo "=========================================="
                 }
             }
         }
@@ -401,17 +354,10 @@ node {
         }
         
         stage('Pipeline Summary') {
-            echo "=========================================="
             echo "PIPELINE EXECUTION COMPLETED SUCCESSFULLY!"
-            echo "=========================================="
             echo "Package Name: ${PACKAGE_NAME}"
             echo "Package Version ID: ${PACKAGE_VERSION_ID}"
-            echo "=========================================="
-            echo "Next Steps:"
-            echo "1. Promote this package version if tests passed"
-            echo "2. Install in UAT/Production orgs"
-            echo "3. Document release notes"
-            echo "=========================================="
+           
         }
     }
 }
