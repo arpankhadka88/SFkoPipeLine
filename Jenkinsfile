@@ -178,45 +178,50 @@ node {
         }
         
         stage('Create Package Version') {
-            script {
-                echo "=========================================="
-                echo "Creating package version for ${PACKAGE_NAME}..."
-                echo "=========================================="
-                
-                def output = sh(
-                    script: """
-                      sf package version create \
-                        --package ${PACKAGE_NAME} \
-                        --installation-key-bypass \
-                        --wait 10 \
-                        --target-dev-hub ${SF_USERNAME} \
-                        --json
-                    """,
-                    returnStdout: true
-                ).trim()
-                
-                echo "Package version creation output:"
-                echo output
-                
-                // Parse JSON output to extract Package Version ID
-                def jsonSlurper = new groovy.json.JsonSlurper()
-                def result = jsonSlurper.parseText(output)
-                
-                if (result.status == 0 && result.result.SubscriberPackageVersionId) {
-                    PACKAGE_VERSION_ID = result.result.SubscriberPackageVersionId
-                    echo "=========================================="
-                    echo "Package version created successfully!"
-                    echo "Package Version ID: ${PACKAGE_VERSION_ID}"
-                    echo "=========================================="
-                    
-                    // Wait for package replication
-                    echo "Waiting 5 minutes for package replication across Salesforce servers..."
-                    sleep(time: 5, unit: 'MINUTES')
-                } else {
-                    error "Failed to create package version or extract Package Version ID"
-                }
-            }
+    script {
+        echo "=========================================="
+        echo "Creating package version for ${PACKAGE_NAME}..."
+        echo "=========================================="
+        
+        def output = sh(
+            script: """
+              sf package version create \
+                --package ${PACKAGE_NAME} \
+                --installation-key-bypass \
+                --wait 10 \
+                --target-dev-hub ${SF_USERNAME} \
+                --json
+            """,
+            returnStdout: true
+        ).trim()
+        
+        echo "Package version creation output:"
+        echo output
+        
+        // Use JsonSlurperClassic and @NonCPS to avoid serialization issues
+        def jsonSlurper = new groovy.json.JsonSlurperClassic()
+        def result = jsonSlurper.parseText(output)
+        
+        if (result.status == 0 && result.result.SubscriberPackageVersionId) {
+            // Extract the value immediately and store as String
+            PACKAGE_VERSION_ID = result.result.SubscriberPackageVersionId.toString()
+            
+            // Clear the result object to help with serialization
+            result = null
+            
+            echo "=========================================="
+            echo "Package version created successfully!"
+            echo "Package Version ID: ${PACKAGE_VERSION_ID}"
+            echo "=========================================="
+            
+            // Wait for package replication
+            echo "Waiting 5 minutes for package replication across Salesforce servers..."
+            sleep(time: 5, unit: 'MINUTES')
+        } else {
+            error "Failed to create package version or extract Package Version ID"
         }
+    }
+}
         
         stage('List Existing Scratch Orgs') {
             echo "=========================================="
