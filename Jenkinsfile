@@ -177,7 +177,7 @@ node {
             }
         }
         
-      stage('Create Package Version') {
+     stage('Create Package Version') {
     script {
         echo "=========================================="
         echo "Creating package version for ${PACKAGE_NAME}..."
@@ -198,12 +198,15 @@ node {
         echo "Package version creation output:"
         echo output
         
-        // Use Jenkins' built-in readJSON step (no approval needed)
-        def result = readJSON text: output
+        // Extract Package Version ID using grep and cut (no JSON parsing needed)
+        PACKAGE_VERSION_ID = sh(
+            script: """
+              echo '${output}' | grep -o '"SubscriberPackageVersionId": "[^"]*"' | cut -d'"' -f4
+            """,
+            returnStdout: true
+        ).trim()
         
-        if (result.status == 0 && result.result.SubscriberPackageVersionId) {
-            PACKAGE_VERSION_ID = result.result.SubscriberPackageVersionId
-            
+        if (PACKAGE_VERSION_ID && PACKAGE_VERSION_ID != '') {
             echo "=========================================="
             echo "Package version created successfully!"
             echo "Package Version ID: ${PACKAGE_VERSION_ID}"
@@ -212,7 +215,7 @@ node {
             echo "Waiting 5 minutes for package replication across Salesforce servers..."
             sleep(time: 5, unit: 'MINUTES')
         } else {
-            error "Failed to create package version or extract Package Version ID"
+            error "Failed to extract Package Version ID from output"
         }
     }
 }
