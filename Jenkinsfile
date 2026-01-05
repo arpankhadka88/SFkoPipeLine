@@ -122,41 +122,69 @@ node {
         }
         
         stage('Run Unit Tests') {
-            script {
-                def scratchOrgAlias = 'PLTest'
-                def testLevel = 'RunLocalTests'
-                echo "Running Apex unit tests in ${scratchOrgAlias}..."
-                echo "Test Level: ${testLevel}"
-                
-                // Check if there are any test classes
-                def testClassCount = sh(
-                    script: "find force-app -name '*Test*.cls' -o -name '*_Test.cls' | wc -l",
+    script {
+        def scratchOrgAlias = 'PLTest'
+        def testLevel = 'RunLocalTests'
+        def minCodeCoverage = 75
+        
+        echo "Running Apex unit tests in ${scratchOrgAlias}..."
+        echo "Test Level: ${testLevel}"
+        
+        // Check for test classes using @isTest annotation
+        def hasTests = sh(
+            script: "grep -r '@isTest' force-app --include='*.cls' || true",
+            returnStdout: true
+        ).trim()
+        
+        if (hasTests) {
+            try {
+                // Run tests and capture output
+                def testResult = sh(
+                    script: """
+                      sf apex run test \
+                        --target-org ${scratchOrgAlias} \
+                        --wait 20 \
+                        --result-format json \
+                        --code-coverage \
+                        --test-level ${testLevel} \
+                        --output-dir test-results
+                    """,
                     returnStdout: true
-                ).trim()
+                )
                 
-                if (testClassCount.toInteger() > 0) {
-                    def testStatus = sh(
-                        script: """
-                          sf apex run test \
-                            --target-org ${scratchOrgAlias} \
-                            --wait 10 \
-                            --result-format human \
-                            --code-coverage \
-                            --test-level ${testLevel}
-                        """,
-                        returnStatus: true
-                    )
-                    
-                    if (testStatus != 0) {
-                        error "Salesforce unit test run failed in ${scratchOrgAlias}"
-                    } else {
-                        echo "All unit tests passed successfully!"
-                    }
-                } else {
-                    echo "No Apex test classes found. Skipping unit tests."
+                def result = readJSON text: testResult
+                def coverage = result.summary.orgWideCoverage
+                def passing = result.summary.passing
+                def failing = result.summary.failing
+                
+                echo "Tests Passed: ${passing}"
+                echo "Tests Failed: ${failing}"
+                echo "Code Coverage: ${coverage}%"
+                
+                // Check coverage threshold
+                if (coverage.toInteger() < minCodeCoverage) {
+                    error "Code coverage ${coverage}% is below required ${minCodeCoverage}%"
                 }
+                
+                if (failing.toInteger() > 0) {
+                    error "Salesforce unit test run failed: ${failing} test(s) failed"
+                }
+                
+                echo "All unit tests passed successfully with ${coverage}% code coverage!"
+                
+            } catch (Exception e) {
+                echo "Test execution failed: ${e.message}"
+                throw e
+            } finally {
+                // Archive test results regardless of outcome
+                archiveArtifacts artifacts: 'test-results/**/*', allowEmptyArchive: true
+                junit testResults: 'test-results/**/*-junit.xml', allowEmptyResults: true
             }
+        } else {
+            echo "No Apex test classes found (no @isTest annotations). Skipping unit tests."
         }
+    }
+}
         
      stage('Create Package Version') {
     script {
